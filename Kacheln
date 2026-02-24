@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inuvet Produktübersicht - Dynamic Grid Prototype</title>
+    <style>
+        /* ==========================================================================
+           1. DESIGN TOKENS & VARIABLES
+           ========================================================================== */
+        :root {
+            /* Colors */
+            --color-primary-green: #78b41b;
+            --color-sec-orange: #ff9c00;
+            --color-sec-yellow: #ffce00;
+            --color-dark: #2e2e2e;
+            --color-bg-light-green: #e0eeca;
+            --color-bg-light-yellow: #feffdc;
+            --color-white: #ffffff;
+            --color-grey-light: #f4f4f4;
+            --color-grey-mid: #dddddd;
+
+            /* Typography */
+            --font-main: "schnebel-sans-me", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            
+            /* Radius - Strict Rule: 0px everywhere except specific stickers */
+            --radius-none: 0px;
+        }
+
+        /* ==========================================================================
+           2. BASE STYLES & TYPOGRAPHY
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            /* Zwingend kantiges Design für alle Standard-Elemente */
+            border-radius: var(--radius-none);
+        }
+
+        body {
+            font-family: var(--font-main);
+            color: var(--color-dark);
+            background-color: var(--color-white);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            font-size: 15px;
+        }
+
+        /* Headings: Immer Fett, KEINE Text-Transformation */
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700;
+            text-transform: none;
+            margin-bottom: 0.5em;
+            color: var(--color-dark);
+            line-height: 1.15;
+        }
+
+        p {
+            margin-bottom: 1em;
+        }
+
+        /* ==========================================================================
+           3. COMPONENTS
+           ========================================================================== */
+        
+        /* Header & Logo */
+        .site-header {
+            padding: 20px;
+            text-align: center;
+            background-color: var(--color-white);
+            margin-bottom: 40px;
+        }
+
+        .header-top {
+            position: relative;
+            max-width: var(--grid-max-width, 1200px); /* Bündig mit dem Grid */
+            margin: 0 auto 20px auto;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+        }
+
+        .header-top__left { display: flex; justify-content: flex-start; }
+        .header-top__center { display: flex; justify-content: center; }
+        .header-top__right { display: flex; justify-content: flex-end; }
+
+        .site-header__logo {
+            height: 80px; /* Logo deutlich größer */
+            width: auto;
+            display: block;
+        }
+
+        /* Info Toggle (Desktop Only) */
+        .info-toggle {
+            display: none; /* Auf Mobile versteckt */
+            position: relative;
+            text-align: left;
+        }
+
+        @media (min-width: 768px) {
+            .info-toggle {
+                display: block;
+            }
+        }
+
+        .info-toggle summary {
+            font-weight: 700;
+            color: var(--color-primary-green);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            list-style: none; /* Versteckt den Standard-Pfeil */
+        }
+
+        .info-toggle summary::-webkit-details-marker {
+            display: none; /* Für Safari */
+        }
+
+        .info-toggle summary:hover {
+            color: var(--color-dark);
+        }
+
+        .info-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 22px;
+            height: 22px;
+            background-color: var(--color-primary-green);
+            color: var(--color-white);
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        /* Das Dropdown legt sich schwebend über den Hintergrund */
+        .info-content {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 350px;
+            background-color: var(--color-white);
+            border: 1px solid var(--color-grey-mid);
+            padding: 20px;
+            margin-top: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            font-size: 0.95rem;
+            color: var(--color-dark);
+            line-height: 1.6;
+            cursor: default;
+            z-index: 100;
+        }
+
+        .info-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Layout Regler Container */
+        .layout-controls {
+            display: none; /* Auf Mobile versteckt */
+            align-items: center;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: var(--color-dark);
+        }
+
+        @media (min-width: 768px) {
+            .layout-controls {
+                display: flex; /* Auf Desktop anzeigen */
+            }
+        }
+
+        /* Inuvet-Style Range Slider */
+        .layout-controls input[type="range"] {
+            -webkit-appearance: none;
+            width: 160px;
+            background: transparent;
+        }
+
+        .layout-controls input[type="range"]:focus {
+            outline: none;
+        }
+
+        /* Webkit (Chrome, Safari, Edge) */
+        .layout-controls input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: var(--color-grey-mid);
+            border-radius: 3px;
+        }
+
+        .layout-controls input[type="range"]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            background: var(--color-primary-green);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -7px; /* Zentriert den Thumbnail auf dem Track */
+            border-radius: 50%; /* Runder Regler wie gewünscht */
+            border: none;
+        }
+
+        /* Firefox */
+        .layout-controls input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: var(--color-grey-mid);
+            border-radius: 3px;
+        }
+
+        .layout-controls input[type="range"]::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            background: var(--color-primary-green);
+            cursor: pointer;
+            border-radius: 50%; /* Runder Regler */
+            border: none;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            text-transform: uppercase;
+            letter-spacing: 1.3px;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            transition: opacity 0.2s ease, transform 0.1s ease;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn--main, .btn--secondary {
+            background-color: var(--color-dark);
+            color: var(--color-white);
+        }
+
+        .btn--full-width {
+            width: 100%;
+        }
+
+        /* Fortschrittsbalken */
+        .progress-widget {
+            margin: 20px 0;
+            width: 100%;
+        }
+
+        .progress-widget__bar-bg {
+            background-color: var(--color-grey-mid);
+            height: 12px;
+            width: 100%;
+            position: relative;
+        }
+
+        .progress-widget__bar-fill {
+            background-color: var(--color-primary-green);
+            height: 100%;
+            width: 65%; /* Beispielwert */
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .progress-widget__labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            font-weight: 700;
+        }
+
+        /* Rabatt-Sticker */
+        .discount-sticker {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 50px;
+            height: 50px;
+            background-color: var(--color-sec-orange);
+            color: var(--color-white);
+            /* Ausnahme: 50% Radius */
+            border-radius: 50% !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            transform: rotate(-12deg);
+            z-index: 30; /* Erhöht, damit er über dem Hover-Bild bleibt */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+        @media (min-width: 768px) {
+            .discount-sticker {
+                top: 15px;
+                left: 15px;
+                width: 70px;
+                height: 70px;
+                font-size: 1.2rem;
+            }
+        }
+
+        /* ==========================================================================
+           4. DYNAMIC GRID SYSTEM & CARDS (BEM)
+           ========================================================================== */
+        
+        .product-grid {
+            display: grid;
+            gap: 15px; /* Mobile: etwas kompakter */
+            padding: 0 15px 60px 15px;
+            max-width: var(--grid-max-width, 1200px); /* Standard 1200px, steuerbar über Regler */
+            margin: 0 auto;
+            /* Dense sorgt dafür, dass Lücken nahtlos aufgefüllt werden */
+            grid-auto-flow: dense;
+            grid-template-columns: repeat(2, 1fr); /* MOBILE: 2 Spalten nebeneinander! */
+            transition: max-width 0.3s ease;
+        }
+
+        /* Tablet (2 Spalten Base, aber mit mehr Gap/Padding) */
+        @media (min-width: 768px) {
+            .product-grid {
+                gap: 20px;
+                padding: 0 20px 60px 20px;
+                grid-auto-rows: 300px; /* Feste Basis-Höhe für perfekte Skalierung */
+            }
+        }
+
+        /* Desktop (4 Spalten) */
+        @media (min-width: 1024px) {
+            .product-grid {
+                grid-template-columns: repeat(4, 1fr);
+                grid-auto-rows: 350px; 
+            }
+        }
+
+        /* Card Base */
+        .card {
+            background-color: var(--color-white);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            border: 1px solid var(--color-grey-mid);
+            overflow: hidden; /* Verhindert, dass Bilder überstehen */
+            height: 100%;
+        }
+
+        .card__img-wrapper {
+            position: relative;
+            flex: 0 0 auto;
+            aspect-ratio: 1 / 1; /* MOBILE: Zwingend quadratisch! */
+            background-color: var(--color-grey-light);
+        }
+
+        @media (min-width: 768px) {
+            .card__img-wrapper {
+                aspect-ratio: auto; /* Desktop: Wieder flexible Höhe passend zur Grid-Row */
+                min-height: 200px;
+                flex: 1 1 auto;
+            }
+        }
+
+        .card__img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Schneidet Bilder perfekt ab ohne sie zu verzerren */
+            cursor: pointer;
+            transition: transform 0.4s ease;
+        }
+
+        .card__img-wrapper:hover .card__img {
+            transform: scale(1.04);
+        }
+
+        .card__content {
+            padding: 15px; /* Mobile: Weniger Padding für 2 Spalten */
+            display: flex;
+            flex-direction: column;
+            flex: 0 0 auto;
+            background-color: inherit;
+        }
+
+        .card__title {
+            font-size: 1.1rem; /* Mobile: Kleinere Headlines */
+        }
+
+        @media (min-width: 768px) {
+            .card__content {
+                padding: 25px; /* Desktop: Normales Padding */
+            }
+            .card__title {
+                font-size: 1.4rem; /* Desktop: Normale Headlines */
+            }
+        }
+
+        .card__footer {
+            margin-top: auto;
+            padding-top: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover .card__footer {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        /* --- Full-Bleed Hover State (Neuer Effekt) --- */
+        .card__hover-view {
+            position: absolute;
+            inset: 0; /* Füllt die Karte komplett aus */
+            z-index: 20;
+            opacity: 0;
+            visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.4s ease, visibility 0.4s ease;
+        }
+
+        .card__hover-bg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            cursor: pointer;
+        }
+
+        /* Kein Abdunkeln mehr beim Rollover */
+        .card__hover-overlay {
+            position: absolute;
+            inset: 0;
+            background-color: transparent; 
+            z-index: 2;
+            pointer-events: none; /* Klicks fallen auf das darunterliegende Bild durch */
+        }
+
+        .card__hover-cta {
+            position: relative;
+            z-index: 3;
+            transform: scale(0.95) translateY(10px);
+            transition: transform 0.4s ease;
+        }
+
+        .card--product:hover .card__hover-view {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .card--product:hover .card__hover-cta {
+            transform: scale(1) translateY(0);
+        }
+
+        @media (hover: hover) {
+            /* Auf Maus-Geräten den Standard-CTA in Produktkarten ausblenden,
+               da stattdessen der zentrierte Hover-Layer gezeigt wird */
+            .card--product .card__footer {
+                display: none;
+            }
+        }
+
+        /* Touch-Geräte zeigen Buttons immer an und deaktivieren den Full-Bleed Layer */
+        @media (hover: none) {
+            .card__footer {
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+            }
+            .card__hover-view {
+                display: none !important;
+            }
+        }
+
+        /* --- Grid Modifiers (The Magic) --- */
+        
+        /* Hilfsklasse: Volle Breite auf Mobile (für reine Text/Promo-Kacheln) */
+        .card--full-mobile {
+            grid-column: span 2;
+        }
+
+        /* 2 Spalten breit auf großen Screens */
+        @media (min-width: 768px) {
+            .card--col-span-2 {
+                grid-column: span 2;
+            }
+            /* 2 Reihen hoch */
+            .card--row-span-2 {
+                grid-row: span 2;
+            }
+            /* 3 Spalten breit */
+            .card--col-span-3 {
+                grid-column: span 3;
+            }
+        }
+
+        /* --- Card Types --- */
+
+        /* Promo Card (Spezifische Regel) */
+        .card--promo {
+            border: 4px solid var(--color-sec-orange);
+        }
+
+        @media (min-width: 768px) {
+            .card--promo {
+                flex-direction: row; /* Links Bild, rechts Text */
+            }
+            .card--promo .card__img-wrapper {
+                flex: 0 0 50%;
+                min-height: auto;
+            }
+            .card--promo .card__content {
+                flex: 0 0 50%;
+                justify-content: center; /* Text vertikal zentrieren */
+            }
+        }
+
+        /* Hintergrund-Varianten */
+        .card--bg-light-green {
+            background-color: var(--color-bg-light-green);
+            border-color: transparent;
+        }
+
+        .card--bg-light-yellow {
+            background-color: var(--color-bg-light-yellow);
+            border-color: transparent; /* Entfernt die Kontur bei farbigen Kacheln */
+        }
+
+        .card--bg-primary {
+            background-color: var(--color-primary-green);
+            color: var(--color-white);
+            border-color: transparent;
+        }
+
+        .card--bg-primary .card__title {
+            color: var(--color-white);
+        }
+
+        /* ==========================================================================
+           5. UTILITIES
+           ========================================================================== */
+        .text-sec-orange { color: var(--color-sec-orange); }
+        .text-primary { color: var(--color-primary-green); }
+
+    </style>
+</head>
+<body>
+
+    <!-- HEADER MIT LOGO -->
+    <header class="site-header">
+        
+        <div class="header-top">
+            
+            <div class="header-top__left">
+                <!-- Info Toggle (versteckt auf Mobile, Links aligned auf Desktop) -->
+                <details class="info-toggle">
+                    <summary>
+                        <span class="info-icon">i</span> Wie funktioniert dieses Mock-up?
+                    </summary>
+                    <div class="info-content">
+                        <p>Dieser Prototyp demonstriert das neue, lückenlose CSS-Grid-System für die Inuvet-Webseite. Das smarte Layout füllt durch den integrierten »Dense«-Algorithmus entstehende Lücken automatisch mit nachfolgenden, kleineren Kacheln auf.</p>
+                        <p>Klicke einfach auf ein beliebiges Produktbild, um direkt durch die verschiedenen Motive zu wechseln. Nutze auf großen Bildschirmen den Slider oben rechts, um die maximale Inhaltsbreite zu verändern und zu testen, wie sich das Grid nahtlos neu anordnet.</p>
+                    </div>
+                </details>
+            </div>
+
+            <div class="header-top__center">
+                <!-- Logo -->
+                <svg class="site-header__logo" id="RGB" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 113.4 113.4">
+                  <defs><style>.st0{fill:none;}.st1{fill:#78b41b;}.st2{clip-path:url(#clippath);}</style><clipPath id="clippath"><rect class="st0" width="113.4" height="113.4"/></clipPath></defs>
+                  <g><path d="M19.4,74.3c0,1.4-1.1,2.6-2.6,2.6s-2.6-1.2-2.6-2.6,1.1-2.5,2.6-2.5,2.5,1.2,2.5,2.5ZM14.7,78.9h4.3v15.4h-4.3s0-15.4,0-15.4Z"/><path d="M23.1,78.9h3.8l.2,2.1c1.5-1.8,3.1-2.5,5.1-2.5s3.5.7,4.2,2.1c.5.9.7,2,.7,4.1v9.7h-4.3v-8.9c0-1.3,0-1.8-.3-2.3-.3-.6-.8-.9-1.6-.9-1.2,0-2.6,1.1-3.5,2.8v9.3h-4.3v-15.4h0Z"/><path d="M50.5,92.6c-1.4,1.5-2.8,2.1-4.7,2.1s-3.4-.8-4.2-2.2c-.5-.9-.7-2.1-.7-4.2v-9.5h4.3v8.7c0,2.6.5,3.4,1.9,3.4s2.3-.6,3.1-1.9v-10.2h4.3v15.4h-3.8l-.3-1.7h0Z"/><path d="M56.8,78.9h4.8l3.6,10.3,3.6-10.3h4.3l-6.3,15.4h-3.9l-6.1-15.4h0Z"/><path d="M78.1,87.9c.2,2.6,1.5,3.7,4.4,3.7s2.7-.3,4.4-1.2l1,2.8c-1.8,1.1-3.8,1.6-6.4,1.6-5.2,0-7.8-2.5-7.8-7.7s2.8-8.6,7.5-8.6,6.8,2.6,6.8,7.6,0,.9,0,1.8h-9.9,0ZM84.2,85.1c-.2-2.4-1.1-3.5-2.9-3.5s-2.9,1.1-3.2,3.5h6.1Z"/><path d="M89.7,82.4l.3-3.4h2.5l.2-3.7,4-1.4v5.1h3.8l-.3,3.4h-3.5v5.6c0,2.8.2,3.3,1.6,3.3s1.3-.2,2.1-.5l.8,2.7c-1.5.9-3,1.3-4.5,1.3s-3-.6-3.7-1.8c-.4-.8-.6-2-.6-4.2v-6.5h-2.7,0Z"/></g>
+                  <g class="st2"><g><path d="M81.4,32h-.3v1h.2c.5,0,.7-.3.7-.6s-.1-.5-.6-.5M82,35.1l-.8-1.5h0v1.5h-.8v-3.7h1.3c.9,0,1.2.4,1.2,1s-.3,1-.8,1c0,0,.2.3.3.5l.7,1.2h-1ZM78.9,33.3c0,1.4,1.1,2.6,2.6,2.6s2.6-1.2,2.6-2.6-1.1-2.6-2.6-2.6-2.6,1.2-2.6,2.6M85,33.3c0,1.9-1.6,3.5-3.5,3.5s-3.6-1.5-3.6-3.5,1.6-3.5,3.6-3.5,3.5,1.5,3.5,3.5"/><path class="st1" d="M28.7,54.5c1.3,5.2,5.6,9,11.1,10.7,4.1-4.1,6.1-9.5,4.8-14.7-1.3-5.2-5.6-9-11.1-10.7-4.1,4.1-6.1,9.5-4.8,14.7Z"/><path class="st1" d="M38.6,32.3c.7,5.3,4.4,9.7,9.7,12,4.6-3.6,7.2-8.6,6.6-14-.6-5.3-4.4-9.7-9.7-12-4.6,3.6-7.2,8.7-6.5,14Z"/><path class="st1" d="M84.6,54.5c-1.3,5.2-5.6,9-11.1,10.7-4.1-4.1-6.1-9.5-4.8-14.7,1.3-5.2,5.6-9,11.1-10.7,4.1,4.1,6.1,9.5,4.8,14.7h0Z"/><path class="st1" d="M74.8,32.3c-.7,5.3-4.4,9.7-9.7,12-4.6-3.6-7.2-8.6-6.6-14,.6-5.3,4.4-9.7,9.7-12,4.6,3.6,7.2,8.7,6.6,14h0Z"/></g></g>
+                </svg>
+            </div>
+
+            <div class="header-top__right">
+                <!-- Layout Regler ist jetzt rechts aligned -->
+                <div class="layout-controls">
+                    <label for="width-slider">Grid-Breite: <span id="width-val">1200px</span></label>
+                    <input type="range" id="width-slider" min="1000" max="1600" step="50" value="1200">
+                </div>
+            </div>
+
+        </div>
+
+    </header>
+
+    <!-- DYNAMIC GRID -->
+    <main class="product-grid">
+
+        <!-- KACHEL 1: Großes Feature (2 Spalten breit, 2 Reihen hoch) -->
+        <article class="card card--col-span-2 card--row-span-2 card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="FloraComplex in Anwendung mit Hund" class="card__img">
+            </div>
+            <div class="card__content">
+                <h2 class="card__title">FloraComplex für eine gesunde Darmflora</h2>
+                <p>Natürliche Unterstützung für deinen Vierbeiner. Ideal für die tägliche Anwendung und von Tierärzten empfohlen.</p>
+                <div class="card__footer">
+                    <button class="btn btn--secondary">Jetzt entdecken</button>
+                </div>
+            </div>
+            <!-- Full-Bleed Hover Layer -->
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--secondary">Jetzt entdecken</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KLASSISCHE KACHEL (1x1) -->
+        <article class="card card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_Dermin_01_1zu1.jpg?v=1768908247" alt="Dermin Protect" class="card__img">
+            </div>
+            <div class="card__content">
+                <h4 class="card__title">Dermin Protect</h4>
+                <p>Natürliche Pflege für Haut & Fell.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Details</button>
+                </div>
+            </div>
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Details</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KACHEL 2: Hochformat (1 Spalte breit, 2 Reihen hoch) -->
+        <article class="card card--row-span-2 card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_Dermin_01_1zu1.jpg?v=1768908247" alt="Dermin inszeniert im Raum" class="card__img">
+            </div>
+            <div class="card__content">
+                <h3 class="card__title">Dermin Hautpflege</h3>
+                <p>Für strahlendes Fell und eine gesunde Hautbarriere. Perfekt in den Alltag integrierbar.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Zum Produkt</button>
+                </div>
+            </div>
+            <!-- Full-Bleed Hover Layer -->
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Zum Produkt</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- AKTIONSKACHEL 1: Bonus (1x1 Kachel, kleine Variante) -->
+        <article class="card card--bg-light-green">
+            <div class="card__content">
+                <h3 class="card__title">Dein Inuvet Bonus</h3>
+                <p>Sammle Punkte bei jeder Bestellung und schalte exklusive Rabatte frei.</p>
+                
+                <div class="progress-widget">
+                    <div class="progress-widget__bar-bg">
+                        <div class="progress-widget__bar-fill"></div>
+                    </div>
+                    <div class="progress-widget__labels">
+                        <span>Silber</span>
+                        <span class="text-primary">Gold (Noch 350P)</span>
+                    </div>
+                </div>
+
+                <div class="card__footer" style="opacity: 1; visibility: visible; transform: none;">
+                    <button class="btn btn--main btn--full-width">Einlösen</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KLASSISCHE KACHEL (1x1) -->
+        <article class="card card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Webshop_Gruppe_EnteroGast_251027_1080px.jpg?v=1761745404" alt="EnteroGast Mini" class="card__img">
+            </div>
+            <div class="card__content">
+                <h4 class="card__title">EnteroGast Mini</h4>
+                <p>Ideal für unterwegs.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Details</button>
+                </div>
+            </div>
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Details</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KACHEL 3: Promo Card (EINZIGE Kachel mit orangem Rahmen .card--promo) -->
+        <article class="card card--promo card--col-span-2 card--full-mobile">
+            <div class="card__img-wrapper">
+                <div class="discount-sticker">-15%</div>
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Webshop_Gruppe_EnteroGast_251027_1080px.jpg?v=1761745404" alt="EnteroGast Bundle Packshot" class="card__img">
+            </div>
+            <div class="card__content">
+                <h3 class="card__title">Das große EnteroGast Bundle</h3>
+                <p>Sichere dir jetzt unser Bestseller-Paket zum Vorteilspreis. Nur für kurze Zeit verfügbar.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main">Angebot sichern</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KACHEL 6: Standard Produkt (1x1 Kachel) -->
+        <article class="card card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Webshop_Gruppe_EnteroGast_251027_1080px.jpg?v=1761745404" alt="EnteroGast Packshot" class="card__img">
+            </div>
+            <div class="card__content">
+                <h4 class="card__title">EnteroGast Akut</h4>
+                <p>Schnelle Hilfe für den Magen.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Details</button>
+                </div>
+            </div>
+            <!-- Full-Bleed Hover Layer -->
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Details</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KLASSISCHE KACHEL (1x1) -->
+        <article class="card card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="FloraComplex Basic" class="card__img">
+            </div>
+            <div class="card__content">
+                <h4 class="card__title">FloraComplex Basic</h4>
+                <p>Tägliche Balance.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Details</button>
+                </div>
+            </div>
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Details</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- AKTIONSKACHEL 2: Warnung/Dringlichkeit (1x1 Kachel, kleine Variante) -->
+        <article class="card card--bg-light-yellow">
+            <div class="card__content">
+                <h3 class="card__title text-sec-orange">Nur heute!</h3>
+                <p>Erhalte kostenlosen Versand auf alle Bestellungen über 50€. Der Rabatt wird automatisch abgezogen.</p>
+                <div class="card__footer" style="opacity: 1; visibility: visible; transform: none;">
+                    <button class="btn btn--secondary btn--full-width">Jetzt Shoppen</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- NEUE KACHEL 9: 1x1 Standard -->
+        <article class="card card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_Dermin_01_1zu1.jpg?v=1768908247" alt="Dermin" class="card__img">
+            </div>
+            <div class="card__content">
+                <h4 class="card__title">Dermin Care</h4>
+                <p>Schützt und pflegt intensiv.</p>
+                <div class="card__footer">
+                    <button class="btn btn--secondary btn--full-width">Details</button>
+                </div>
+            </div>
+            <!-- Full-Bleed Hover Layer -->
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--secondary">Details</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- NEUE KACHEL 8: 1x2 Hochformat -->
+        <article class="card card--row-span-2 card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="FloraComplex" class="card__img">
+            </div>
+            <div class="card__content">
+                <h3 class="card__title">Tägliche Pflege</h3>
+                <p>Unterstütze das Wohlbefinden deines Tieres jeden Tag aufs Neue.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Ansehen</button>
+                </div>
+            </div>
+            <!-- Full-Bleed Hover Layer -->
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Ansehen</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KLASSISCHE KACHEL (1x1) -->
+        <article class="card card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_Dermin_01_1zu1.jpg?v=1768908247" alt="Dermin Shampoo" class="card__img">
+            </div>
+            <div class="card__content">
+                <h4 class="card__title">Dermin Shampoo</h4>
+                <p>Sanfte Reinigung.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Details</button>
+                </div>
+            </div>
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Details</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- NEUE KACHEL 10: 2x2 Großes Feature (ACHTUNG: Kein Oranger Promo-Rahmen mehr) -->
+        <article class="card card--col-span-2 card--row-span-2 card--product card--full-mobile">
+            <div class="card__img-wrapper">
+                <div class="discount-sticker">-20%</div>
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Webshop_Gruppe_EnteroGast_251027_1080px.jpg?v=1761745404" alt="EnteroGast" class="card__img">
+            </div>
+            <div class="card__content">
+                <h2 class="card__title">Premium Bundle</h2>
+                <p>Die ultimative Kombination für maximale Gesundheit. Nur für kurze Zeit im großen Vorteilspack verfügbar.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main">Bundle ansehen</button>
+                </div>
+            </div>
+            <!-- Full-Bleed Hover Layer -->
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Bundle ansehen</button>
+                </div>
+            </div>
+        </article>
+
+        <!-- KLASSISCHE KACHEL (1x1) -->
+        <article class="card card--product">
+            <div class="card__img-wrapper">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Webshop_Gruppe_EnteroGast_251027_1080px.jpg?v=1761745404" alt="EnteroGast Pulver" class="card__img">
+            </div>
+            <div class="card__content">
+                <h4 class="card__title">EnteroGast Pulver</h4>
+                <p>Zum einfachen Untermischen.</p>
+                <div class="card__footer">
+                    <button class="btn btn--main btn--full-width">Details</button>
+                </div>
+            </div>
+            <div class="card__hover-view">
+                <img src="https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152" alt="Hover Background" class="card__hover-bg">
+                <div class="card__hover-overlay"></div>
+                <div class="card__hover-cta">
+                    <button class="btn btn--main">Details</button>
+                </div>
+            </div>
+        </article>
+
+    </main>
+
+    <script>
+        // Bild-Wechsel Logik per Klick
+        const inuvetImages = [
+            "https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_FloraComplex_07-web_1zu1.jpg?v=1771237152",
+            "https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Inuvet_Dermin_01_1zu1.jpg?v=1768908247",
+            "https://cdn.shopify.com/s/files/1/0827/3648/0599/files/Webshop_Gruppe_EnteroGast_251027_1080px.jpg?v=1761745404"
+        ];
+
+        // Die neuen vollflächigen Hover-Bilder (.card__hover-bg) erhalten ebenfalls den Klick-Event!
+        document.querySelectorAll('.card__img, .card__hover-bg').forEach(img => {
+            img.addEventListener('click', function(e) {
+                // Event Propagation stoppen, damit man den Button normal klicken kann
+                e.stopPropagation();
+
+                // Finde den aktuellen Index des Bildes (ignoriert eventuelle URL-Parameter Unterschiede)
+                let currentIndex = inuvetImages.findIndex(src => this.src.includes(src.split('?')[0]));
+                if (currentIndex === -1) currentIndex = 0;
+                
+                // Setze das nächste Bild im Array
+                let nextIndex = (currentIndex + 1) % inuvetImages.length;
+                
+                // --- NEUE LÖSUNG FÜR ROLLOVER/KLICK-PROBLEM ---
+                // Finde die umgebende Karte
+                const parentCard = this.closest('.card');
+                
+                // Finde BEIDE Bilder in dieser Karte (Basis-Bild UND Hover-Bild)
+                const imagesToUpdate = parentCard.querySelectorAll('.card__img, .card__hover-bg');
+                
+                // Ändere die Bildquelle für beide synchron
+                imagesToUpdate.forEach(cardImg => {
+                    cardImg.style.opacity = '0.5';
+                    setTimeout(() => {
+                        cardImg.src = inuvetImages[nextIndex];
+                        cardImg.style.opacity = '1';
+                    }, 150);
+                });
+            });
+            
+            // CSS Übergang für den Opacity-Wechsel hinzufügen
+            img.style.transition = 'transform 0.4s ease, opacity 0.15s ease';
+        });
+
+        // --- Regler für Grid-Breite ---
+        const widthSlider = document.getElementById('width-slider');
+        const widthVal = document.getElementById('width-val');
+        const root = document.documentElement;
+
+        widthSlider.addEventListener('input', function() {
+            const newWidth = this.value + 'px';
+            widthVal.textContent = newWidth;
+            // Aktualisiert die CSS-Variable zur Steuerung des Grids
+            root.style.setProperty('--grid-max-width', newWidth);
+        });
+    </script>
+</body>
+</html>
